@@ -12,7 +12,7 @@
     export let updateChart: (score?: Score) => Promise<void>;
 
     export async function changeDay(date: DateTime) {
-        activeDay = date.toSQLDate();
+        activeDay = date.toSQLDate()!;
 
         await completeUpdate();
 
@@ -25,7 +25,7 @@
     let todaysTodos: Todo[] = [];
     let todaysDones: Todo[] = [];
 
-    let activeDay = getToday().toSQLDate();
+    let activeDay = getToday().toSQLDate()!;
 
     async function completeUpdate() {
         let [newTodos, _] = await Promise.all([trpc($page).getTODOs.query(activeDay), updateChart()]);
@@ -69,7 +69,7 @@
     }
 
     async function midnight() {
-        activeDay = getToday().toSQLDate();
+        activeDay = getToday().toSQLDate()!;
         await completeUpdate();
         updateChart();
 
@@ -139,8 +139,8 @@
     }
 
     .header {
-        color: rgb(15, 20, 25, 90%);
-        border-bottom: 2px solid #dfc29d;
+        color: var(--text-color);
+        border-bottom: 2px solid var(--accent-color);
         padding: 0.5em;
         margin: 0.5em;
         display: flex;
@@ -155,7 +155,7 @@
         right: 0;
         bottom: 0.25rem;
         border: none;
-        border-rdius: 10%;
+        border-radius: 10%;
         background: none;
     }
 
@@ -165,8 +165,8 @@
     }
 
     .wrapper {
-        background-color: #f5deb3;
-        border: 3px solid #d2b48c;
+        background-color: var(--secondary-background-color);
+        border: 3px solid var(--accent-color);
         border-radius: 0.5rem;
         display: flex;
         flex-direction: column;

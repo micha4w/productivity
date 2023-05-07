@@ -1,6 +1,6 @@
 <script lang="ts">
     import { getMonths, getWeeks } from './date-utlis';
-    import { getISODate, getToday, toISODate } from '$lib/client/dates';
+    import { getToday } from '$lib/client/dates';
     import { createEventDispatcher, onMount } from 'svelte';
     import { TodoType } from '$lib/types';
 
@@ -23,7 +23,7 @@
 
         switch (typeId) {
             case TodoType.Daily:
-                newTodo.start = getISODate();
+                newTodo.start = getToday().toSQLDate()!;
                 newTodo.repeat = repeatDays;
                 newTodo.frequency = repeatDays;
                 if (newTodo.frequency == 0)
@@ -34,24 +34,24 @@
                 break;
             case TodoType.Weekly:
                 const weekDay = getToday();
-                newTodo.start = toISODate(weekDay);
+                newTodo.start = weekDay.toSQLDate()!;
                 newTodo.repeat = selectedWeekDays;
                 newTodo.frequency = repeatWeeks;
                 if (newTodo.frequency == 0)
                 {
                     newTodo.frequency = 1;
-                    newTodo.end = toISODate(weekDay.endOf('week'));
+                    newTodo.end = weekDay.endOf('week').toSQLDate()!;
                 }
                 break;
             case TodoType.Monthly:
                 const monthDay = getToday();
-                newTodo.start = toISODate(monthDay);
+                newTodo.start = monthDay.toSQLDate()!;
                 newTodo.repeat = selectedMonthDays;
                 newTodo.frequency = repeatWeeks;
                 if (newTodo.frequency == 0)
                 {
                     newTodo.frequency = 1;
-                    newTodo.end = toISODate(monthDay.endOf('week'));
+                    newTodo.end = monthDay.endOf('week').toSQLDate()!;
                 }
                 break;
         }

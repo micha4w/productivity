@@ -1,6 +1,6 @@
 <script lang="ts">
     import { browser } from '$app/environment';
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onMount } from 'svelte';
 
     const dispatch = createEventDispatcher();
 
@@ -27,6 +27,7 @@
     import { getToday } from './client/dates';
     import type { ChartOptions } from 'chart.js/dist/types/index';
     import { DateTime } from 'luxon';
+    import { set } from 'zod';
 
     export async function update(score? : Score) {
         if (!browser) return;
@@ -42,15 +43,15 @@
         let scores: [ISODate, Score][];
         let day: DateTime;
         if (daysBack == -1) {
-            scores = await trpc($page).getScores.query({ end: end.toSQLDate() });
+            scores = await trpc($page).getScores.query({ end: end.toSQLDate()! });
 
             if (scores.length > 0)
                 day = DateTime.fromISO(scores[0][0]);
             else
-                day = DateTime.local(end);
+                day = end;
         } else {
             day = getToday(-daysBack + 1);
-            scores = await trpc($page).getScores.query({ start: day.toSQLDate(), end: end.toSQLDate() });
+            scores = await trpc($page).getScores.query({ start: day.toSQLDate()!, end: end.toSQLDate()! });
         }
 
 
@@ -104,22 +105,22 @@
                 data: [],
                 label: 'Todos',
                 yAxisID: 'todosY',
-                backgroundColor: '#FF448844',
-                borderColor: '#FF4488',
-                fill: true,
                 cubicInterpolationMode: 'monotone'
             },
             {
                 data: [],
                 label: 'Points',
                 yAxisID: 'pointsY',
-                backgroundColor: '#00ecff66',
-                borderColor: '#00ecff',
-                fill: true,
                 cubicInterpolationMode: 'monotone'
             }
         ]
     };
+    
+    onMount(() => {
+        data.datasets.forEach(set => {
+            set.borderColor = getComputedStyle(document.body).getPropertyValue('--accent-color');
+        })
+    })
 
     const options: ChartOptions<'line'> = {
         responsive: true,
@@ -210,7 +211,7 @@
         padding: 10px;
         font-size: 16px;
         width: 120px;
-        background-color: #ff6e44;
+        background-color: var(--secondary-background-color);
         font-weight: bold;
     }
 
