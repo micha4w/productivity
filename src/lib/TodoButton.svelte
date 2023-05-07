@@ -28,24 +28,25 @@
         display: table;
         text-align: center;
         
-        border: 2px solid;
+        border: 2px solid var(--primary-accent-color);
+        background-color: var(--primary-color);
         border-radius: .1rem;
-        color: white;
+        color: var(--secondary-text-color);
         font-weight: 450;
     }
 
-    .daily {
+    /*.daily {
         background-color: #7fffd4;
         border-color: #67d3af;
     }
 
     .weekly {
         background-color: #adff2f;
-        border-color: #91d828;
+        border-color: 91d828;
     }
 
     .monthly {
         background-color: #ff7b00;
         border-color: #d16501;
-    }
+    }*/
 </style>

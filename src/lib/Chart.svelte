@@ -118,11 +118,13 @@
     
     onMount(() => {
         data.datasets.forEach(set => {
-            set.borderColor = getComputedStyle(document.body).getPropertyValue('--accent-color');
+            set.borderColor = getComputedStyle(document.body).getPropertyValue('--primary-accent-color');
         })
+        options.scales!.x!.grid!.color = getComputedStyle(document.body).getPropertyValue('--secondary-accent-color');
+        options.scales!.pointsY!.grid!.color = getComputedStyle(document.body).getPropertyValue('--secondary-accent-color');
     })
 
-    const options: ChartOptions<'line'> = {
+    let options: ChartOptions<'line'> = {
         responsive: true,
         maintainAspectRatio: false,
         // onResize: console.log,
@@ -146,9 +148,6 @@
                 title: {
                     display: true,
                     text: 'Date'
-                },
-                grid: {
-                    color: '#222222'
                 }
             },
             todosY: {
@@ -163,9 +162,6 @@
                 type: 'linear',
                 beginAtZero: true,
                 position: 'right',
-                grid: {
-                    color: '#222222'
-                }
             }
         }
     };
@@ -177,6 +173,9 @@
 </script>
 
 <div id="wrapper">
+    <div id="lineWrapper">
+        <Line bind:chart on:click={onClick} {data} {options} />
+    </div>
     <div id="buttons">
         <input
             type="button"
@@ -189,10 +188,6 @@
         <input type="button" value="Past year" on:click={setYear} />
         <input type="button" value="All time" on:click={setAllTime} />
     </div>
-    <div id="lineWrapper">
-        <Line bind:chart on:click={onClick} {data} {options} />
-        <!-- <div style="width: 100%; height: 100%; background-color: red;"></div> -->
-    </div>
 </div>
 
 <style>
@@ -200,10 +195,11 @@
         flex: 0 1 auto;
         display: flex;
         justify-content: center;
+        gap: 0.4rem;
     }
 
     input[type='button'] {
-        margin: 2px;
+        flex-grow: 1;
         border: none;
         text-align: center;
         text-decoration: none;
@@ -212,18 +208,25 @@
         font-size: 16px;
         width: 120px;
         background-color: var(--secondary-background-color);
+        border-radius: 0.4rem;
+        border: 3px solid var(--primary-accent-color);
+        color: var(--primary-text-color);
         font-weight: bold;
     }
 
     #lineWrapper {
         height: 300px;
         flex: 1 1 auto;
+        background-color: var(--secondary-background-color);
+        border: 3px solid var(--primary-accent-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
     }
 
     #wrapper {
         display: flex;
         flex-flow: column;
+        gap: 0.4rem;
         height: 100%;
-        width: 100%;
     }
 </style>

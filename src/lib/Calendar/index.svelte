@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { getMonths, getWeeks } from './date-utlis';
-    import { getToday } from '$lib/client/dates';
-    import { createEventDispatcher, onMount } from 'svelte';
-    import { TodoType } from '$lib/types';
+    import { getMonths, getWeeks } from "./date-utlis";
+    import { getToday } from "$lib/client/dates";
+    import { createEventDispatcher, onMount } from "svelte";
+    import { TodoType } from "$lib/types";
 
     const dispatch = createEventDispatcher();
 
@@ -19,15 +19,21 @@
     let selecting = false;
 
     function createTask() {
-        const newTodo: Todo = { type: typeId, points, title, start: '', frequency: 0, repeat: 0 };
+        const newTodo: Todo = {
+            type: typeId,
+            points,
+            title,
+            start: "",
+            frequency: 0,
+            repeat: 0,
+        };
 
         switch (typeId) {
             case TodoType.Daily:
                 newTodo.start = getToday().toSQLDate()!;
                 newTodo.repeat = repeatDays;
                 newTodo.frequency = repeatDays;
-                if (newTodo.frequency == 0)
-                {
+                if (newTodo.frequency == 0) {
                     newTodo.frequency = 1;
                     newTodo.end = newTodo.start;
                 }
@@ -37,10 +43,9 @@
                 newTodo.start = weekDay.toSQLDate()!;
                 newTodo.repeat = selectedWeekDays;
                 newTodo.frequency = repeatWeeks;
-                if (newTodo.frequency == 0)
-                {
+                if (newTodo.frequency == 0) {
                     newTodo.frequency = 1;
-                    newTodo.end = weekDay.endOf('week').toSQLDate()!;
+                    newTodo.end = weekDay.endOf("week").toSQLDate()!;
                 }
                 break;
             case TodoType.Monthly:
@@ -48,125 +53,123 @@
                 newTodo.start = monthDay.toSQLDate()!;
                 newTodo.repeat = selectedMonthDays;
                 newTodo.frequency = repeatWeeks;
-                if (newTodo.frequency == 0)
-                {
+                if (newTodo.frequency == 0) {
                     newTodo.frequency = 1;
-                    newTodo.end = monthDay.endOf('week').toSQLDate()!;
+                    newTodo.end = monthDay.endOf("week").toSQLDate()!;
                 }
                 break;
         }
 
-        dispatch('createtask', newTodo);
+        dispatch("createtask", newTodo);
     }
 
-    function toggleSelected(day: number) {
-        if (typeId == 1) {
+    function toggleSelectedWeek(day: number) {
+        if (typeId == TodoType.Weekly) {
             if (selecting) selectedWeekDays |= 1 << day;
             else selectedWeekDays &= ~(1 << day);
-        } else {
+        }
+    }
+    function toggleSelectedMonth(day: number) {
+        if (typeId == TodoType.Monthly) {
             if (selecting) selectedMonthDays |= 1 << day;
             else selectedMonthDays &= ~(1 << day);
         }
     }
 
-    const typeNames = ['Daily Task', 'Weekly Task', 'Monthly Task'];
+    const typeNames = ["Daily Task", "Weekly Task", "Monthly Task"];
     let typeId = 0;
     let points = 10;
-    let title = '';
-
-    onMount(() => {
-        document.addEventListener('click', (event : MouseEvent) => {
-            if (menu && !menu.contains(event.target as (HTMLElement))) {
-                showMenu = false;
-            }
-        });
-
-        document.addEventListener('keypress', (event : KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                showMenu = false;
-            }
-        });
-    });
-
-    let menu : HTMLElement;
-    let showMenu = false;
+    let title = "";
 </script>
 
-<button on:click|stopPropagation={() => showMenu = true}>+</button>
-{#if showMenu}
-    <div bind:this={menu} class="date-time-picker" tabindex="-1">
-        <div class="tab-container" tabindex="-1">
-            <button class="header subtle-text-button" on:click={() => showMenu = false}>Create Task</button>
+<div class="date-time-picker" tabindex="-1">
+    <div class="tab-container" tabindex="-1">
+        <button class="header subtle-text-button">
+            <input
+                class="task-name"
+                placeholder="Task Name"
+                bind:value={title}
+            />
 
-            <input class="task-name" placeholder="Task Name" bind:value={title} />
-
-            <div class="thumb-number" style="margin-left: {(215 / 99) * points - 1.5*Math.floor(Math.log10(points))}px">{points}</div>
+            <div
+                class="thumb-number"
+                style="margin-left: {(215 / 99) * points -
+                    1.5 * Math.floor(Math.log10(points))}px"
+            >
+                {points}
+            </div>
             <div class="points-display">Points</div>
-            <input type="range" class="points-slider" bind:value={points} min="1" max="100" />
+            <input
+                type="range"
+                class="points-slider"
+                bind:value={points}
+                min="1"
+                max="100"
+            />
 
             <div class="repeat-picker">
-                <div class="top">
-                    <button
-                        type="button"
-                        class="page-button"
-                        tabindex="-1"
-                        on:click={() => {
-                            typeId = (typeId + 2) % 3;
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                            ><path d="M5 3l3.057-3 11.943 12-11.943 12-3.057-3 9-9z" transform="rotate(180, 12, 12)" /></svg
-                        >
-                    </button>
-                    <div class="dropdown month">
-                        {typeNames[typeId]}
-                    </div>
-                    <button
-                        type="button"
-                        class="page-button"
-                        tabindex="-1"
-                        on:click={() => {
-                            typeId = (typeId + 1) % 3;
-                        }}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                            ><path d="M5 3l3.057-3 11.943 12-11.943 12-3.057-3 9-9z" /></svg
-                        >
-                    </button>
-                </div>
-
-                {#if typeId == TodoType.Daily}
+                <div
+                    class="daily"
+                    class:disabled={typeId != TodoType.Daily}
+                    on:mousedown={() => (typeId = TodoType.Daily)}
+                    on:keypress={() => (typeId = TodoType.Daily)}
+                >
+                    <div class="top">Daily Task</div>
                     <div class="week">
                         <span style="padding-right: 5px">Frequency: </span>
-                        <input class="days-picker" type="number" bind:value={repeatDays} min="0" max="100" />
+                        <input
+                            class="days-picker"
+                            type="number"
+                            bind:value={repeatDays}
+                            min="0"
+                            max="100"
+                        />
                         <span style="padding-left: 5px"
                             >day{#if repeatDays != 1}s{/if}</span
                         >
                     </div>
-                {:else if typeId == TodoType.Weekly}
+                </div>
+
+                <div
+                    class="weekly"
+                    class:disabled={typeId != TodoType.Weekly}
+                    on:mousedown={() => (typeId = TodoType.Weekly)}
+                    on:keypress={() => (typeId = TodoType.Weekly)}
+                >
+                    <div class="top">Weekly Task</div>
                     <div class="week">
-                        {#each ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'] as weekDay, i}
+                        {#each ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as weekDay, i}
                             <div
                                 class="cell"
-                                class:selected={selectedWeekDays & (1 << ((i + 1) % 7))}
+                                class:selected={selectedWeekDays &
+                                    (1 << (i + 1) % 7)}
                                 on:mousedown={(e) => {
                                     if (e.buttons & 1) {
-                                        selecting = !(selectedWeekDays & (1 << ((i + 1) % 7)));
-                                        toggleSelected((i + 1) % 7);
+                                        selecting = !(
+                                            selectedWeekDays &
+                                            (1 << (i + 1) % 7)
+                                        );
+                                        toggleSelectedWeek((i + 1) % 7);
                                     }
                                 }}
                                 on:mouseenter={(e) => {
-                                    if (e.buttons & 1) toggleSelected((i + 1) % 7);
+                                    if (e.buttons & 1)
+                                        toggleSelectedWeek((i + 1) % 7);
                                 }}
                             >
                                 {weekDay}
                             </div>
                         {/each}
                     </div>
-
                     <div class="week up-seperate">
                         <span style="padding-right: 5px">Frequency: </span>
-                        <input class="days-picker" type="number" bind:value={repeatWeeks} min="1" max="53" />
+                        <input
+                            class="days-picker"
+                            type="number"
+                            bind:value={repeatWeeks}
+                            min="1"
+                            max="53"
+                        />
                         <span style="padding-left: 5px"
                             >week{#if repeatWeeks != 1}s{/if}</span
                         >
@@ -179,7 +182,15 @@
                             {/each}
                         </select>
                     </div>
-                {:else if typeId == TodoType.Monthly}
+                </div>
+
+                <div
+                    class="monthly"
+                    class:disabled={typeId != TodoType.Monthly}
+                    on:mousedown={() => (typeId = TodoType.Monthly)}
+                    on:keypress={() => (typeId = TodoType.Monthly)}
+                >
+                    <div class="top">Monthly Task</div>
                     {#each Array(5) as _, weekIndex}
                         <div class="week">
                             {#each Array(7) as _, dayIndex}
@@ -187,15 +198,20 @@
                                 {#if 31 >= i}
                                     <div
                                         class="cell"
-                                        class:selected={selectedMonthDays & (1 << i)}
+                                        class:selected={selectedMonthDays &
+                                            (1 << i)}
                                         on:mousedown={(e) => {
                                             if (e.buttons & 1) {
-                                                selecting = !(selectedMonthDays & (1 << i));
-                                                toggleSelected(i);
+                                                selecting = !(
+                                                    selectedMonthDays &
+                                                    (1 << i)
+                                                );
+                                                toggleSelectedMonth(i);
                                             }
                                         }}
                                         on:mouseenter={(e) => {
-                                            if (e.buttons & 1) toggleSelected(i);
+                                            if (e.buttons & 1)
+                                                toggleSelectedMonth(i);
                                         }}
                                     >
                                         <span>{i}</span>
@@ -211,7 +227,13 @@
 
                     <div class="week up-seperate">
                         <span style="padding-right: 5px">Frequency: </span>
-                        <input class="days-picker" type="number" bind:value={repeatMonths} min="1" max="12" />
+                        <input
+                            class="days-picker"
+                            type="number"
+                            bind:value={repeatMonths}
+                            min="1"
+                            max="12"
+                        />
                         <span style="padding-left: 5px"
                             >month{#if repeatMonths != 1}s{/if}</span
                         >
@@ -220,21 +242,32 @@
                         <span style="padding-right: 5px"> Start: </span>
                         <select class="start-picker" bind:value={startMonth}>
                             {#each getMonths() as months}
-                                <option value={months.number}>{months.name}</option>
+                                <option value={months.number}
+                                    >{months.name}</option
+                                >
                             {/each}
                         </select>
                     </div>
-                {/if}
+                </div>
             </div>
 
             <div class="submit">
-                <input type="button" value="Create Task" on:click={() => {showMenu = false; createTask()}} />
+                <input
+                    type="button"
+                    value="Create Task"
+                    on:click={() => {
+                        createTask();
+                    }}
+                />
             </div>
-        </div>
+        </button>
     </div>
-{/if}
+</div>
 
 <style>
+    .disabled {
+        color: gray;
+    }
 
     .up-seperate {
         padding-top: 15px;
@@ -245,7 +278,8 @@
     .points-display {
         text-align: center;
         position: absolute;
-        margin-left: 95px;
+        left: 50%;
+        transform: translateX(-50%);
         color: gray;
     }
 
@@ -314,15 +348,22 @@
         outline-offset: 0.125rem;
     } */
 
-    .repeat-picker {
+    .daily,
+    .weekly,
+    .monthly {
         border: 1px solid gray;
         border-radius: 3px;
-        padding: 5px;
+        padding: 0.5rem;
+    }
+
+    .repeat-picker {
         text-align: center;
+        display: flex;
+        gap: 0.5rem;
     }
 
     .header {
-        font-weight: 600;
+        /* font-weight: 600; */
         text-align: center;
         font-size: 18px;
         padding-bottom: 3px;
@@ -331,7 +372,7 @@
         text-align: center;
         width: 100%;
         border: none;
-        background: none
+        background: none;
     }
 
     .task-name {
@@ -354,26 +395,28 @@
     }
 
     .date-time-picker {
-        position: absolute;
-        display: inline-block;
         color: var(--date-picker-foreground, #000000);
         background: var(--date-picker-background, #ffffff);
+
         user-select: none;
-        width: 242px;
         -webkit-user-select: none;
+
         padding: 0.5rem;
         cursor: default;
         font-size: 0.75rem;
         border: 1px solid rgba(103, 113, 137, 0.3);
         border-radius: 3px;
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08), 0px 2px 6px rgba(0, 0, 0, 0.11);
+        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.08),
+            0px 2px 6px rgba(0, 0, 0, 0.11);
         outline: none;
+
         transition: all 80ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .date-time-picker:focus {
         border-color: var(--date-picker-highlight-border, #0269f7);
-        box-shadow: 0px 0px 0px 2px var(--date-picker-highlight-shadow, rgba(2, 105, 247, 0.4));
+        box-shadow: 0px 0px 0px 2px
+            var(--date-picker-highlight-shadow, rgba(2, 105, 247, 0.4));
     }
 
     .tab-container {
@@ -381,45 +424,9 @@
     }
 
     .top {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        padding-bottom: 0.5rem;
-    }
-
-    .month {
-        flex-grow: 1;
-        text-align: center;
-    }
-
-    svg {
-        display: block;
-        fill: var(--date-picker-foreground, #000000);
-        opacity: 0.75;
-        outline: none;
-    }
-
-    .page-button {
-        background-color: transparent;
-        width: 1.5rem;
-        height: 1.5rem;
-        flex-shrink: 0;
-        border-radius: 5px;
-        box-sizing: border-box;
-        border: 1px solid transparent;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .page-button:hover {
-        background-color: rgba(128, 128, 128, 0.08);
-        border: 1px solid rgba(128, 128, 128, 0.08);
-    }
-
-    .page-button svg {
-        width: 0.68rem;
-        height: 0.68rem;
+        border-bottom: 2px solid gray;
+        padding-bottom: 0.3rem;
+        margin-bottom: 0.5rem;
     }
 
     .week {

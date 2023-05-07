@@ -27,12 +27,13 @@
         align-items: stretch ;
         justify-content: space-evenly;
         gap: .5rem;
+        padding: 1rem;
     }
 
     .graphBox {
         grid-area: graph;
-        height: min(100%, 45dvw);
         align-self: center;
+        height: 100%;
         flex: 1;
     }
 

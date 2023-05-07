@@ -1,13 +1,14 @@
 <script lang="ts">
-    import { dndzone } from 'svelte-dnd-action';
-    import { flip } from 'svelte/animate';
-    import { DateTime } from 'luxon';
-    import { getToday } from '$lib/client/dates';
-    import { trpc } from '$lib/trpc/client';
-    import { onMount } from 'svelte';
-    import { page } from '$app/stores';
-    import TodoButton from './TodoButton.svelte';
-    import NotePlus from 'svelte-material-icons/NotePlus.svelte';
+    import { dndzone } from "svelte-dnd-action";
+    import { flip } from "svelte/animate";
+    import { DateTime } from "luxon";
+    import { getToday } from "$lib/client/dates";
+    import { trpc } from "$lib/trpc/client";
+    import { onMount } from "svelte";
+    import { page } from "$app/stores";
+    import TodoButton from "./TodoButton.svelte";
+    import Calendar from "$lib/Calendar/index.svelte";
+    import NotePlus from "svelte-material-icons/NotePlus.svelte";
 
     export let updateChart: (score?: Score) => Promise<void>;
 
@@ -20,6 +21,8 @@
     }
 
     let disabled = false;
+    let todoCreator: HTMLElement;
+    let todoCreatorActive = false;
     const flipDurationMs = 200;
 
     let todaysTodos: Todo[] = [];
@@ -28,7 +31,10 @@
     let activeDay = getToday().toSQLDate()!;
 
     async function completeUpdate() {
-        let [newTodos, _] = await Promise.all([trpc($page).getTODOs.query(activeDay), updateChart()]);
+        let [newTodos, _] = await Promise.all([
+            trpc($page).getTODOs.query(activeDay),
+            updateChart(),
+        ]);
         todaysDones = newTodos.filter((todo) => todo.done) as Todo[];
         todaysTodos = newTodos.filter((todo) => !todo.done) as Todo[];
 
@@ -41,7 +47,11 @@
         const factor = done ? 1 : -1;
         updateChart({ points: todo.points * factor, todos: factor });
 
-        await trpc($page).checkTODO.query({ id: todo.id!, done, day: activeDay });
+        await trpc($page).checkTODO.query({
+            id: todo.id!,
+            done,
+            day: activeDay,
+        });
 
         await completeUpdate();
     }
@@ -73,31 +83,68 @@
         await completeUpdate();
         updateChart();
 
-        setTimeout(midnight, (getToday(+1).toSeconds() - DateTime.now().toSeconds() + 30) * 1_000); // Add 1 minute delay to make sure we are in the correct day
+        setTimeout(
+            midnight,
+            (getToday(+1).toSeconds() - DateTime.now().toSeconds() + 30) * 1_000
+        ); // Add 1 minute delay to make sure we are in the correct day
     }
 
     onMount(() => {
         midnight();
+        document.addEventListener("click", (event: MouseEvent) => {
+            if (
+                todoCreator &&
+                !todoCreator.contains(event.target as HTMLElement)
+            ) {
+                todoCreatorActive = false;
+            }
+        });
+
+        document.addEventListener("keypress", (event: KeyboardEvent) => {
+            if (event.key === "Escape") {
+                todoCreatorActive = false;
+            }
+        });
     });
 </script>
+
+{#if todoCreatorActive}
+    <div bind:this={todoCreator} class="todoCreator">
+        <Calendar />
+    </div>
+{/if}
 
 <div class="flexContainer">
     <div class="wrapper" class:disabled>
         <div class="header">
             <h3>ToDo</h3>
-            <button class="addButton"><NotePlus size="1.5rem" viewBox="0 0 24 22.5" /></button>
+            <button
+                class="addButton"
+                on:click|stopPropagation={() => (todoCreatorActive = !todoCreatorActive)}
+                ><NotePlus size="1.5rem" viewBox="0 0 24 22.5" /></button
+            >
         </div>
 
         <section
             class="container"
-            use:dndzone={{ items: todaysTodos, flipDurationMs, dropTargetStyle: {}, dragDisabled: disabled }}
+            use:dndzone={{
+                items: todaysTodos,
+                flipDurationMs,
+                dropTargetStyle: {},
+                dragDisabled: disabled,
+            }}
             on:consider={(e) => {
                 todaysTodos = e.detail.items;
             }}
             on:finalize={(e) => {
                 todaysTodos = e.detail.items;
-                if (e.detail.info.trigger === 'droppedIntoZone') {
-                    todoChecked(todaysTodos.find(todo => todo.id === +e.detail.info.id), false);
+                if (e.detail.info.trigger === "droppedIntoZone") {
+                    todoChecked(
+                        todaysTodos.find(
+                            (todo) => todo.id === +e.detail.info.id
+                        ),
+                        false
+                    );
                 }
             }}
         >
@@ -115,12 +162,22 @@
 
         <section
             class="container"
-            use:dndzone={{ items: todaysDones, flipDurationMs, dropTargetStyle: {}, dragDisabled: disabled }}
+            use:dndzone={{
+                items: todaysDones,
+                flipDurationMs,
+                dropTargetStyle: {},
+                dragDisabled: disabled,
+            }}
             on:consider={(e) => (todaysDones = e.detail.items)}
             on:finalize={(e) => {
                 todaysDones = e.detail.items;
-                if (e.detail.info.trigger === 'droppedIntoZone') {
-                    todoChecked(todaysDones.find(todo => todo.id === +e.detail.info.id), true);
+                if (e.detail.info.trigger === "droppedIntoZone") {
+                    todoChecked(
+                        todaysDones.find(
+                            (todo) => todo.id === +e.detail.info.id
+                        ),
+                        true
+                    );
                 }
             }}
         >
@@ -137,10 +194,17 @@
     h3 {
         margin: 0px;
     }
+    
+    .todoCreator {
+        position: absolute;
+        right: 2rem;
+        top: 5rem;
+        z-index: 10;
+    }
 
     .header {
-        color: var(--text-color);
-        border-bottom: 2px solid var(--accent-color);
+        color: var(--primary-text-color);
+        border-bottom: 2px solid var(--primary-accent-color);
         padding: 0.5em;
         margin: 0.5em;
         display: flex;
@@ -155,23 +219,22 @@
         right: 0;
         bottom: 0.25rem;
         border: none;
-        border-radius: 10%;
+        border-radius: 50%;
         background: none;
     }
 
-    .addButton:focus,
     .addButton:hover {
-        background-color: red;
+        background-color: var(--primary-color);
+        border: 2px solid var(--primary-accent-color);
     }
 
     .wrapper {
         background-color: var(--secondary-background-color);
-        border: 3px solid var(--accent-color);
+        border: 3px solid var(--primary-accent-color);
         border-radius: 0.5rem;
         display: flex;
         flex-direction: column;
         flex: 1;
-        margin: 0.5rem;
     }
 
     .disabled {
@@ -182,6 +245,7 @@
         display: flex;
         flex-direction: column;
         height: 100%;
+        gap: 0.5rem;
     }
 
     .container {
