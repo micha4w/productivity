@@ -110,7 +110,7 @@
 
 {#if todoCreatorActive}
     <div bind:this={todoCreator} class="todoCreator">
-        <Calendar />
+        <Calendar on:createtask={todoCreate}/>
     </div>
 {/if}
 

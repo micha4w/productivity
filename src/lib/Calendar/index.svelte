@@ -93,8 +93,7 @@
 
             <div
                 class="thumb-number"
-                style="margin-left: {(215 / 99) * points -
-                    1.5 * Math.floor(Math.log10(points))}px"
+                style="margin-left: {(669 / 99) * (points - 1)}px"
             >
                 {points}
             </div>
@@ -145,6 +144,7 @@
                                     (1 << (i + 1) % 7)}
                                 on:mousedown={(e) => {
                                     if (e.buttons & 1) {
+                                        typeId = TodoType.Weekly
                                         selecting = !(
                                             selectedWeekDays &
                                             (1 << (i + 1) % 7)
@@ -202,6 +202,7 @@
                                             (1 << i)}
                                         on:mousedown={(e) => {
                                             if (e.buttons & 1) {
+                                                typeId = TodoType.Monthly
                                                 selecting = !(
                                                     selectedMonthDays &
                                                     (1 << i)
@@ -286,8 +287,9 @@
     .thumb-number {
         text-align: center;
         position: absolute;
-        margin-top: 13px;
+        margin-top: 5px;
         color: white;
+        text-shadow: black 0 0 3px, black 0 0 3px, black 0 0 3px;
         pointer-events: none;
         z-index: 1;
         width: 30px;
@@ -464,5 +466,10 @@
         color: var(--date-picker-selected-color, inherit);
         background: var(--date-picker-selected-background, #aaa);
         border: 2px solid var(--date-picker-highlight-border, #333);
+    }
+
+    .disabled .cell.selected {
+        background: #eee;
+        border-color: #ddd;
     }
 </style>

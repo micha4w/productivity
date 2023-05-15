@@ -14,8 +14,6 @@
     </div>
     <div class="doneBox">
         <DragBox bind:this={dragBox} updateChart={(score) => chart.update(score)} />
-
-        <!-- <Calendar on:createtask={todoCreate} /> -->
     </div>
 </div>
 
