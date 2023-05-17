@@ -2,13 +2,14 @@ import Database from 'better-sqlite3';
 import { TodoType } from '$lib/types';
 import fs from 'fs';
 import { DateTime } from 'luxon';
+import { date } from 'zod';
 
 if (!fs.existsSync('./data')) {
     fs.mkdirSync('./data');
 }
 
 const DB_PATH = './data/todos.db';
-const db = new Database(DB_PATH /* { verbose: console.log }*/);
+const db = new Database(DB_PATH  /*,{ verbose: console.log }*/);
 
 db.prepare(
     'CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, points INTEGER, start DATE, end DATE, type TINYINT, frequency TINYINT, repeat INT)'
@@ -17,7 +18,7 @@ db.prepare(
     'CREATE TABLE IF NOT EXISTS doneTodos (todoId INTEGER, day DATE, FOREIGN KEY(todoId) REFERENCES todos(id), PRIMARY KEY(todoId, day))'
 ).run();
 
-export function getTODOs(day: ISODate): Todo[] {
+export function getTODOs(day: SQLDate): Todo[] {
     try {
         return db
             .prepare(`
@@ -29,14 +30,14 @@ export function getTODOs(day: ISODate): Todo[] {
                         (type == ${TodoType.Monthly} AND (STRFTIME('%Y',@day)*12+STRFTIME('%m',@day)-STRFTIME('%Y',start)*12-STRFTIME('%m',start)) % frequency == 0 AND (1<<STRFTIME('%d',@day)) & repeat)
                     )
                 `)
-            .all({ day });
+            .all({ day }) as Todo[];
     } catch (dbError) {
         console.error(dbError);
         return [];
     }
 }
 
-export function getScores(startDay: ISODate | null, endDay: ISODate): [ISODate, Score][] {
+export function getScores(startDay: SQLDate | null, endDay: SQLDate): [SQLDate, Score][] {
     try {
         const scores = db
             .prepare(
@@ -50,7 +51,7 @@ export function getScores(startDay: ISODate | null, endDay: ISODate): [ISODate, 
             )
             .all({ startDay, endDay });
 
-        return scores.map(({ day, todos, points }) => [day, { todos, points }] as [ISODate, Score]);
+        return scores.map((s: any) => [s.day, { todos: s.todos, points: s.points }]);
     } catch (dbError) {
         console.error(dbError);
         return [];
@@ -67,10 +68,10 @@ export function addTODO(todo: Todo): number | bigint {
                     todo.end = todo.start;
                     break;
                 case TodoType.Weekly:
-                    todo.end = DateTime.fromSQL(todo.start).endOf('week').toSQLDate();
+                    todo.end = DateTime.fromSQL(todo.start).endOf('week').toSQLDate()!;
                     break;
                 case TodoType.Monthly:
-                    todo.end = DateTime.fromSQL(todo.start).endOf('month').toSQLDate();
+                    todo.end = DateTime.fromSQL(todo.start).endOf('month').toSQLDate()!;
                     break;
             }
 
@@ -92,7 +93,7 @@ export function addTODO(todo: Todo): number | bigint {
     }
 }
 
-export function checkTODO(todoId: number, done: boolean, day: ISODate): Score {
+export function checkTODO(todoId: number, done: boolean, day: SQLDate): Score {
     // TODO check if day is today (including timezone)
     try {
         if (done) {
@@ -122,14 +123,19 @@ export function checkTODO(todoId: number, done: boolean, day: ISODate): Score {
     }
 }
 
-export function removeTODO(todoId: number, day: ISODate) {
+export function removeTODO(todoId: number, day: SQLDate) {
     // TODO check if day is no more than 1 day back (including timezone)
-
     try {
-        const { start } = db.prepare('SELECT start FROM todos WHERE id == ?').get(todoId);
+        const { start } = db.prepare('SELECT start FROM todos WHERE id == ?').get(todoId) as any;
 
+        checkTODO(todoId, false, day)
         if (day == start) db.prepare('DELETE FROM todos WHERE id == ?').run(todoId);
-        else db.prepare('UPDATE todos SET end == ? WHERE id == ? AND end IS NULL').run(day, todoId);
+        else {
+            const date = DateTime.fromSQL(day);
+            day = date.set({day: date.day -1}).toSQLDate()!;
+
+            db.prepare('UPDATE todos SET end == ? WHERE id == ? AND end IS NULL').run(day, todoId);
+        }
     } catch (dbError) {
         console.error(dbError);
     }

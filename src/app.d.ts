@@ -2,7 +2,7 @@
 
 // for information about these interfaces
 declare global {
-	type ISODate = string;
+	type SQLDate = string;
 
 	interface Score {
 		todos: number,
@@ -13,8 +13,8 @@ declare global {
 		id?: number;
 		title: string;
 		points: number;
-		start: ISODate;
-		end?: ISODate;
+		start: SQLDate;
+		end?: SQLDate;
 		type: TodoType;
 		frequency: number;
 		repeat: number;

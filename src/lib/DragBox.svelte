@@ -9,6 +9,7 @@
     import TodoButton from "./TodoButton.svelte";
     import Calendar from "$lib/Calendar/index.svelte";
     import NotePlus from "svelte-material-icons/NotePlus.svelte";
+    import Delete from "svelte-material-icons/Delete.svelte";
 
     export let updateChart: (score?: Score) => Promise<void>;
 
@@ -35,8 +36,23 @@
             trpc($page).getTODOs.query(activeDay),
             updateChart(),
         ]);
-        todaysDones = newTodos.filter((todo) => todo.done) as Todo[];
-        todaysTodos = newTodos.filter((todo) => !todo.done) as Todo[];
+        function sortFilter(todos: Todo[], todoA: Todo, todoB: Todo): number {
+            return (
+                todos.findIndex((canditate) => canditate.id === todoA.id) -
+                todos.findIndex((canditate) => canditate.id === todoB.id)
+            );
+        }
+
+        todaysDones = newTodos
+            .filter((todo) => todo.done)
+            .sort((a, b) =>
+                sortFilter(todaysDones, a as Todo, b as Todo)
+            ) as Todo[];
+        todaysTodos = newTodos
+            .filter((todo) => !todo.done)
+            .sort((a, b) =>
+                sortFilter(todaysTodos, a as Todo, b as Todo)
+            ) as Todo[];
 
         updateChart();
     }
@@ -44,27 +60,29 @@
     async function todoChecked(todo: Todo | undefined, done: boolean) {
         if (!todo) return;
 
-        const factor = done ? 1 : -1;
-        updateChart({ points: todo.points * factor, todos: factor });
+        if (todo.done != done) {
+            const factor = done ? 1 : -1;
+            updateChart({ points: todo.points * factor, todos: factor });
 
-        await trpc($page).checkTODO.query({
-            id: todo.id!,
-            done,
-            day: activeDay,
-        });
+            await trpc($page).checkTODO.query({
+                id: todo.id!,
+                done,
+                day: activeDay,
+            });
+        }
 
         await completeUpdate();
     }
 
     async function todoRemove(id: number | undefined) {
-        const todo = todaysTodos.find((todo) => todo.id === id)!;
-
-        if (todo.done) {
-            const score: Score = { points: -todo.points, todos: -1 };
-            updateChart(score);
+        let todo = todaysDones.find((todo) => todo.id === id)!;
+        if (todo) {
+            updateChart({ points: -todo.points, todos: -1 });
+            todaysDones = todaysDones.filter((todo) => todo.id !== id);
+        } else {
+            todo = todaysTodos.find((todo) => todo.id === id)!;
         }
 
-        todaysTodos = todaysTodos.filter((todo) => todo.id !== id);
         await trpc($page).removeTODO.query({ id: id!, day: activeDay });
 
         await completeUpdate();
@@ -110,7 +128,7 @@
 
 {#if todoCreatorActive}
     <div bind:this={todoCreator} class="todoCreator">
-        <Calendar on:createtask={todoCreate}/>
+        <Calendar on:createtask={todoCreate} />
     </div>
 {/if}
 
@@ -120,7 +138,8 @@
             <h3>ToDo</h3>
             <button
                 class="addButton"
-                on:click|stopPropagation={() => (todoCreatorActive = !todoCreatorActive)}
+                on:click|stopPropagation={() =>
+                    (todoCreatorActive = !todoCreatorActive)}
                 ><NotePlus size="1.5rem" viewBox="0 0 24 22.5" /></button
             >
         </div>
@@ -134,10 +153,10 @@
                 dragDisabled: disabled,
             }}
             on:consider={(e) => {
-                todaysTodos = e.detail.items;
+                todaysTodos = e.detail.items.filter(Boolean);
             }}
             on:finalize={(e) => {
-                todaysTodos = e.detail.items;
+                todaysTodos = e.detail.items.filter(Boolean);
                 if (e.detail.info.trigger === "droppedIntoZone") {
                     todoChecked(
                         todaysTodos.find(
@@ -168,9 +187,9 @@
                 dropTargetStyle: {},
                 dragDisabled: disabled,
             }}
-            on:consider={(e) => (todaysDones = e.detail.items)}
+            on:consider={(e) => (todaysDones = e.detail.items.filter(Boolean))}
             on:finalize={(e) => {
-                todaysDones = e.detail.items;
+                todaysDones = e.detail.items.filter(Boolean);
                 if (e.detail.info.trigger === "droppedIntoZone") {
                     todoChecked(
                         todaysDones.find(
@@ -188,13 +207,29 @@
             {/each}
         </section>
     </div>
+    <div class="overlayer">
+        <div
+            class="trash"
+            use:dndzone={{
+                items: [],
+                flipDurationMs,
+                dropTargetStyle: {},
+                dropTargetClasses: ["shown"],
+            }}
+            on:consider={(e) => e.detail.items}
+            on:finalize={(e) => {
+                todoRemove(+e.detail.info.id);
+            }}
+        />
+        <div class="deleteIcon"><Delete size="5rem" color="#AA0011" /></div>
+    </div>
 </div>
 
 <style>
     h3 {
         margin: 0px;
     }
-    
+
     .todoCreator {
         position: absolute;
         right: 2rem;
@@ -213,6 +248,7 @@
     }
 
     .addButton {
+        display: flex;
         position: absolute;
         height: 100%;
         aspect-ratio: 1;
@@ -257,5 +293,40 @@
         padding: 0.2rem;
         flex-grow: 1;
         border-radius: 1rem;
+    }
+
+    .overlayer {
+        position: absolute;
+        right: 1.5rem;
+        bottom: 1.5rem;
+    }
+
+    .deleteIcon {
+        display: flex;
+        position: relative;
+        z-index: 100;
+    }
+
+    .trash {
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: -100;
+        width: 100%;
+        height: 100%;
+
+        transition: 0.4s ease-in-out;
+
+        /* transform: scale(0%);
+        opacity: 0; */
+    }
+
+    .trash:global(.shown) {
+        transform: scale(100%);
+        opacity: 1;
+    }
+
+    .trash:hover {
+        transform: rotate(10);
     }
 </style>

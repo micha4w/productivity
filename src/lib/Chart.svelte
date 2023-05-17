@@ -40,7 +40,7 @@
 
         const end = getToday();
 
-        let scores: [ISODate, Score][];
+        let scores: [SQLDate, Score][];
         let day: DateTime;
         if (daysBack == -1) {
             scores = await trpc($page).getScores.query({ end: end.toSQLDate()! });
